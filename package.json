@@ -1,0 +1,43 @@
+{
+  "name": "orbit-cli-tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "findChains": "ts-node scripts/find-chains.ts",
+    "fetchChainInformation": "ts-node scripts/fetch-chain-information.ts",
+    "getChain": "ts-node scripts/get-chain.ts",
+    "calculateChainsValue": "ts-node scripts/calculate-chains-value.ts",
+    "prettier:check": "prettier --check '**/*.{ts,md,json,yml}'",
+    "prettier:format": "prettier --write '**/*.{ts,md,json,yml}'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@offchainlabs/eslint-config-typescript": "0.2.2",
+    "@offchainlabs/prettier-config": "0.2.1",
+    "@types/node": "^22.5.0",
+    "@types/yargs": "^17.0.32",
+    "@typescript-eslint/eslint-plugin": "^8.2.0",
+    "@typescript-eslint/parser": "^8.2.0",
+    "eslint": "^9.9.0",
+    "eslint-config-next": "^14.2.6",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jest": "^28.8.0",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-react": "^7.32.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.3.3"
+  },
+  "dependencies": {
+    "@arbitrum/orbit-sdk": "^0.18.0",
+    "@arbitrum/sdk": "^4.0.1",
+    "dotenv": "^16.3.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2",
+    "viem": "^2.20.0",
+    "yargs": "^17.7.2"
+  }
+}
