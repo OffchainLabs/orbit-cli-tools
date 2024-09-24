@@ -9,6 +9,7 @@ export type AbiEventItem = {
 
 export type OrbitChainInformation = {
   id: number;
+  name: string;
   rpc: string;
   parentChainId: number;
   parentChainRpc: string;

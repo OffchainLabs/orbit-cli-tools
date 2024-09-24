@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Chain, defineChain, GetLogsReturnType, PublicClient } from 'viem';
+import { Address, Chain, defineChain, GetLogsReturnType, PublicClient } from 'viem';
 import {
   mainnet,
   sepolia,
@@ -116,23 +116,30 @@ export const getDefaultChainRpc = (chainInformation: Chain, rpcSpecified?: strin
   return undefined;
 };
 
-// Load orbit-chains files
+// Helper functions for orbit-chain files
+export const generateOrbitChainKey = (parentChainId: number, rollupAddress: Address) => {
+  return `${parentChainId}_${rollupAddress.toLowerCase()}`;
+}
+
 export const loadOrbitChainsFromFile = () => {
   const orbitChainsInformationFilepath = path.join(__dirname, '..', orbitChainsInformationJsonFile);
   const orbitChainsInformationRaw = fs.readFileSync(orbitChainsInformationFilepath, 'utf8');
   const orbitChainsInformation = JSON.parse(orbitChainsInformationRaw);
 
-  // Loading local file
+  // Loading local file (if it exists)
+  let orbitChainsLocalInformation = [];
   const orbitChainsLocalInformationFilepath = path.join(
     __dirname,
     '..',
     orbitChainsLocalInformationJsonFile,
   );
-  const orbitChainsLocalInformationRaw = fs.readFileSync(
-    orbitChainsLocalInformationFilepath,
-    'utf8',
-  );
-  const orbitChainsLocalInformation = JSON.parse(orbitChainsLocalInformationRaw);
+  if (fs.existsSync(orbitChainsLocalInformationFilepath)) {
+    const orbitChainsLocalInformationRaw = fs.readFileSync(
+      orbitChainsLocalInformationFilepath,
+      'utf8',
+    );
+    orbitChainsLocalInformation = JSON.parse(orbitChainsLocalInformationRaw);
+  }
 
   return {
     ...orbitChainsInformation,

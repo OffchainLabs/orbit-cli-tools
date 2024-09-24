@@ -41,18 +41,18 @@ const main = async (options: CalculateChainsValueOptions) => {
   // Load orbit-chains file
   const orbitChainsInformation = loadOrbitChainsFromFile();
 
-  // Get all ids
-  const orbitChainIds = Object.keys(orbitChainsInformation);
+  // Get all keys
+  const orbitChainKeys = Object.keys(orbitChainsInformation);
 
   // Initialize result object
   const chainsValue: ChainValueResult[] = [];
 
   // Traverse all ids
   await Promise.all(
-    orbitChainIds.map(async (orbitChainId) => {
+    orbitChainKeys.map(async (orbitChainKey) => {
       // Get chain information
       const orbitChainInformation = await getChain({
-        id: Number(orbitChainId),
+        key: orbitChainKey,
       });
 
       // Failsafe, although this will never happen (for now)
@@ -68,7 +68,7 @@ const main = async (options: CalculateChainsValueOptions) => {
       }) as PublicClient;
 
       // Get TVL on bridge
-      const orbitChainTvl = await calculateChainTvl(orbitChainInformation.id);
+      const orbitChainTvl = await calculateChainTvl(orbitChainKey);
 
       // Get latest block number batched
       const lastReportedMessageCount = await parentChainPublicClient.readContract({

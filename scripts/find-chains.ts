@@ -13,7 +13,7 @@ import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
 import { AbiEventItem } from '../src/types';
 import { saveChainInformation } from '../src/saveChainInformation';
 import { fetchChainInformation } from '../src/fetchChainInformation';
-import { getDefaultChainRpc, queryLogsByChunks } from '../src/utils';
+import { generateOrbitChainKey, getDefaultChainRpc, queryLogsByChunks } from '../src/utils';
 import { getChain } from '../src/getChain';
 
 /////////////////////////
@@ -180,25 +180,35 @@ const main = async (options: FindChainsOptions) => {
     await Promise.all(
       chainsSummary.map(async (chainSummary) => {
         // We check first if the chain is already in the orbit-chains file
-        const storedChainInformation = await getChain({
-          id: chainSummary.chainId,
+        const storedChainInformationByKey = await getChain({
+          key: generateOrbitChainKey(options.parentChainId, chainSummary.rollupAddress),
         });
+        if (storedChainInformationByKey) {
+          // That chain already exists in the orbit-chains file, we don't need to process it
+          return;
+        }
 
-        if (storedChainInformation) {
-          // That chain id already exists in the orbit-chains file
-          if (storedChainInformation.core.rollup === chainSummary.rollupAddress) {
-            // Chain is already stored in the orbit-chains file, we don't need to process this one
-          } else {
-            // Information for that chain id already exists in the orbit-chains file, but it's different
-            duplicatedChains.push(chainSummary);
-          }
+        // We then check if the chain id is present in the orbit-chains file
+        const storedChainInformationById = await getChain({
+          id: Number(chainSummary.chainId),
+        });
+        if (storedChainInformationById) {
+          // Information for that chain id already exists in the orbit-chains file, but it's different
+          duplicatedChains.push(chainSummary);
+          return;
+        }
 
-          // We return in both cases, since we don't want to take action
+        // We finally check if the same chain id has been detected multiple times in this run
+        const chainIdIsDuplicated = chainsSummary.find(
+          (item: ChainSummary) => item.chainId === chainSummary.chainId && item.rollupAddress !== chainSummary.rollupAddress,
+        );
+        if (chainIdIsDuplicated) {
+          duplicatedChains.push(chainSummary);
           return;
         }
 
         // Chain does not exist in the orbit-chains file, we continue the flow (fetch information and save it)
-        console.log(`Fetching information of ${chainSummary.chainId}`);
+        console.log(`Fetching information for ${chainSummary.chainId}`);
         const chainInformation = await fetchChainInformation({
           rollup: chainSummary.rollupAddress,
           parentChainId: options.parentChainId,
@@ -206,22 +216,13 @@ const main = async (options: FindChainsOptions) => {
         });
 
         console.log(`Saving information of ${chainSummary.chainId}`);
-        if (
-          !saveChainInformation({
-            parentChainPublicClient,
-            orbitChainId: chainInformation.chainId,
-            orbitChainRpc: undefined,
-            coreContractsWithCreator: chainInformation.coreContractsWithCreator,
-            tokenBridgeContractsWithCreators: chainInformation.tokenBridgeContractsWithCreators,
-          })
-        ) {
-          // Special case where when trying to save the chain, it already existed in the orbit-chains file
-          // This may happen when finding multiple chains with the same chain id created close to one another
-          // (so they don't exist in the file before running this script)
-          // Note that since "map" is run in parallel for all found chains, the one marked as duplicate is not
-          // necessarily the last one created.
-          duplicatedChains.push(chainSummary);
-        }
+        saveChainInformation({
+          parentChainPublicClient,
+          orbitChainId: chainInformation.chainId,
+          orbitChainRpc: undefined,
+          coreContractsWithCreator: chainInformation.coreContractsWithCreator,
+          tokenBridgeContractsWithCreators: chainInformation.tokenBridgeContractsWithCreators,
+        });
       }),
     );
 
