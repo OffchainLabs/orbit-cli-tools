@@ -22,7 +22,7 @@ export const saveChainInformation = ({
   coreContractsWithCreator: CoreContractsWithCreator;
   tokenBridgeContractsWithCreators: TokenBridgeContractsWithCreators;
   updateInformation?: boolean;
-}) => {
+}): boolean => {
   // Load orbit-chains file
   const orbitChainsInformationFilepath = path.join(__dirname, '..', orbitChainsInformationJsonFile);
   const orbitChainsInformationRaw = fs.readFileSync(orbitChainsInformationFilepath, 'utf8');
@@ -33,7 +33,7 @@ export const saveChainInformation = ({
     console.warn(
       `Chain id ${orbitChainId} is already present in ${orbitChainsInformationJsonFile}. If you want to update the information, use the flag '--updateInformation'. Skip saving.`,
     );
-    return;
+    return false;
   }
 
   const orbitChainInformation: OrbitChainInformation = {
@@ -52,4 +52,5 @@ export const saveChainInformation = ({
   orbitChainsInformation[orbitChainId] = orbitChainInformation;
 
   fs.writeFileSync(orbitChainsInformationFilepath, JSON.stringify(orbitChainsInformation, null, 4));
+  return true;
 };

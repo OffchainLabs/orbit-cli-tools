@@ -5,9 +5,12 @@ export type GetChainOptions = {
   id?: number;
   rpc?: string;
   rollup?: string;
+  verbose?: boolean;
 };
 
-export const getChain = async (options: GetChainOptions) => {
+export const getChain = async (
+  options: GetChainOptions,
+): Promise<OrbitChainInformation | undefined> => {
   // Load orbit-chains file
   const orbitChainsInformation = loadOrbitChainsFromFile();
 
@@ -37,7 +40,10 @@ export const getChain = async (options: GetChainOptions) => {
   }
 
   if (!orbitChainId || !(orbitChainId in orbitChainsInformation)) {
-    throw new Error(`Chain was not found in the chains JSON file`);
+    if (options.verbose) {
+      console.error(`Chain ${orbitChainId} was not found in the chains JSON file`);
+    }
+    return;
   }
 
   return orbitChainsInformation[orbitChainId];

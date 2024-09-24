@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { defineChain } from 'viem';
+import { Chain, defineChain, GetLogsReturnType, PublicClient } from 'viem';
 import {
   mainnet,
   sepolia,
@@ -10,7 +10,17 @@ import {
   arbitrumSepolia,
   base,
 } from 'viem/chains';
-import { orbitChainsInformationJsonFile, orbitChainsLocalInformationJsonFile } from '../src/constants';
+import {
+  blockQueryChunkSizeArb,
+  blockQueryChunkSizeBase,
+  blockQueryChunkSizeEth,
+  blockQueryMaxAttempts,
+  orbitChainsInformationJsonFile,
+  orbitChainsLocalInformationJsonFile,
+} from '../src/constants';
+import { AbiEventItem } from './types';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Types
 export type ChainInformation = {
@@ -86,6 +96,26 @@ export const getChainInfoFromChainId = (chainId: number) => {
   return undefined;
 };
 
+export const getDefaultChainRpc = (chainInformation: Chain, rpcSpecified?: string) => {
+  if (rpcSpecified) {
+    return rpcSpecified;
+  }
+
+  const chainId = chainInformation.id;
+  switch (chainId) {
+    case mainnet.id:
+      return process.env.RPC_ETHEREUM ?? undefined;
+    case arbitrum.id:
+      return process.env.RPC_ARBONE ?? undefined;
+    case arbitrumNova.id:
+      return process.env.RPC_ARBNOVA ?? undefined;
+    case base.id:
+      return process.env.RPC_BASE ?? undefined;
+  }
+
+  return undefined;
+};
+
 // Load orbit-chains files
 export const loadOrbitChainsFromFile = () => {
   const orbitChainsInformationFilepath = path.join(__dirname, '..', orbitChainsInformationJsonFile);
@@ -93,12 +123,99 @@ export const loadOrbitChainsFromFile = () => {
   const orbitChainsInformation = JSON.parse(orbitChainsInformationRaw);
 
   // Loading local file
-  const orbitChainsLocalInformationFilepath = path.join(__dirname, '..', orbitChainsLocalInformationJsonFile);
-  const orbitChainsLocalInformationRaw = fs.readFileSync(orbitChainsLocalInformationFilepath, 'utf8');
+  const orbitChainsLocalInformationFilepath = path.join(
+    __dirname,
+    '..',
+    orbitChainsLocalInformationJsonFile,
+  );
+  const orbitChainsLocalInformationRaw = fs.readFileSync(
+    orbitChainsLocalInformationFilepath,
+    'utf8',
+  );
   const orbitChainsLocalInformation = JSON.parse(orbitChainsLocalInformationRaw);
 
   return {
     ...orbitChainsInformation,
     ...orbitChainsLocalInformation,
   };
-}
+};
+
+// Query logs by chunks
+const getChunkSizeByChainId = (chainId: number) => {
+  switch (chainId) {
+    case mainnet.id:
+      return blockQueryChunkSizeEth;
+    case base.id:
+      return blockQueryChunkSizeBase;
+  }
+
+  return blockQueryChunkSizeArb;
+};
+
+export type QueryLogsByChunksParameters = {
+  publicClient: PublicClient;
+  event: AbiEventItem;
+  fromBlock: bigint;
+  toBlock: bigint;
+  verbose?: boolean;
+};
+export const queryLogsByChunks = async ({
+  publicClient,
+  event,
+  fromBlock,
+  toBlock,
+  verbose = true,
+}: QueryLogsByChunksParameters): Promise<GetLogsReturnType> => {
+  const results: GetLogsReturnType[] = [];
+
+  // Initializing chunkSize
+  const chainId = await publicClient.getChainId();
+  let chunkSize = getChunkSizeByChainId(chainId);
+
+  // Initializing fromBlock
+  let currentFromBlock = fromBlock;
+
+  // Main loop
+  while (currentFromBlock <= toBlock) {
+    // Calculating toBlock
+    const currentToBlock =
+      currentFromBlock + chunkSize - 1n < toBlock ? currentFromBlock + chunkSize - 1n : toBlock;
+
+    // Querying logs
+    let attempts = 0;
+    while (attempts < blockQueryMaxAttempts) {
+      try {
+        if (verbose) {
+          console.log(
+            `Querying logs on ${chainId} from ${currentFromBlock} to ${currentToBlock}...`,
+          );
+        }
+        const result = await publicClient.getLogs({
+          event,
+          fromBlock: currentFromBlock,
+          toBlock: currentToBlock,
+        });
+        results.push(result);
+        break;
+      } catch (error) {
+        attempts++;
+
+        if (attempts >= blockQueryMaxAttempts) {
+          console.error(`Failed to get logs after ${blockQueryMaxAttempts} attempts:`, error);
+          throw error;
+        }
+
+        console.warn(`Attempt ${attempts} failed. Retrying...`);
+        await sleep(1000 * attempts);
+      }
+    }
+
+    // Next iteration
+    currentFromBlock = currentToBlock + 1n;
+  }
+
+  return results.flat();
+};
+
+// General utils
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

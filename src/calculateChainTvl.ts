@@ -10,6 +10,7 @@ import {
 import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
 import { getChain } from '../src/getChain';
 import { getTokenPrice } from '../src/coingecko';
+import { getDefaultChainRpc } from './utils';
 
 export type ChainTvlResult = {
   nativeToken: Address;
@@ -25,11 +26,15 @@ export const calculateChainTvl = async (chainId: Number): Promise<ChainTvlResult
     id: Number(chainId),
   });
 
+  if (!orbitChainInformation) {
+    throw new Error(`Chain ${chainId} was not found in the chains JSON file`);
+  }
+
   // Parent chain client
   const parentChainInformation = getParentChainFromId(orbitChainInformation.parentChainId);
   const parentChainPublicClient = createPublicClient({
     chain: parentChainInformation,
-    transport: http(orbitChainInformation.parentChainRpc),
+    transport: http(getDefaultChainRpc(parentChainInformation)),
   }) as PublicClient;
 
   if (orbitChainInformation.core.nativeToken == zeroAddress) {

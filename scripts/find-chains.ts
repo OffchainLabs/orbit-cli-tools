@@ -4,6 +4,7 @@ import {
   decodeEventLog,
   http,
   keccak256,
+  Log,
   PublicClient,
   toHex,
 } from 'viem';
@@ -12,6 +13,8 @@ import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
 import { AbiEventItem } from '../src/types';
 import { saveChainInformation } from '../src/saveChainInformation';
 import { fetchChainInformation } from '../src/fetchChainInformation';
+import { getDefaultChainRpc, queryLogsByChunks } from '../src/utils';
+import { getChain } from '../src/getChain';
 
 /////////////////////////
 // Types and constants //
@@ -26,11 +29,11 @@ type FindChainsOptions = {
 
 type RollupInitializedEventArgs = {
   machineHash: `0x${string}`;
-  chainId: bigint;
+  chainId: number;
 };
 
 type ChainSummary = {
-  chainId: bigint;
+  chainId: number;
   transactionHash: `0x${string}`;
   createdAtBlock: bigint;
   rollupAddress: Address;
@@ -103,7 +106,7 @@ const renderFoundChains = (blockFrom: bigint, blockTo: bigint, chainsSummary: Ch
 const main = async (options: FindChainsOptions) => {
   // Parent chain client
   const parentChainInformation = getParentChainFromId(options.parentChainId);
-  const clientTransport = options.parentChainRpc ? http(options.parentChainRpc) : http();
+  const clientTransport = http(getDefaultChainRpc(parentChainInformation, options.parentChainRpc));
   const parentChainPublicClient = createPublicClient({
     chain: parentChainInformation,
     transport: clientTransport,
@@ -120,15 +123,16 @@ const main = async (options: FindChainsOptions) => {
     toBlock = BigInt(options.toBlock);
   }
 
-  const queryFromBlock = fromBlock > 0 ? fromBlock : 'earliest';
+  const queryFromBlock = fromBlock > 0 ? fromBlock : 0n;
   const queryToBlock = toBlock;
 
   // Obtaining RollupInitialized events
-  const rollupInitializedEvents = await parentChainPublicClient.getLogs({
+  const rollupInitializedEvents = (await queryLogsByChunks({
+    publicClient: parentChainPublicClient,
     event: rollupInitializedEventAbi as AbiEventItem,
     fromBlock: queryFromBlock,
     toBlock: queryToBlock,
-  });
+  })) as Log<bigint, number, false, AbiEventItem, undefined, [AbiEventItem], string>[];
 
   const chainsSummary: ChainSummary[] = await Promise.all(
     rollupInitializedEvents.map(async (rollupInitializedEvent) => {
@@ -171,8 +175,29 @@ const main = async (options: FindChainsOptions) => {
 
   // Optionally saving them
   if (options.saveChainsInformation) {
+    const duplicatedChains: ChainSummary[] = [];
+
     await Promise.all(
       chainsSummary.map(async (chainSummary) => {
+        // We check first if the chain is already in the orbit-chains file
+        const storedChainInformation = await getChain({
+          id: chainSummary.chainId,
+        });
+
+        if (storedChainInformation) {
+          // That chain id already exists in the orbit-chains file
+          if (storedChainInformation.core.rollup === chainSummary.rollupAddress) {
+            // Chain is already stored in the orbit-chains file, we don't need to process this one
+          } else {
+            // Information for that chain id already exists in the orbit-chains file, but it's different
+            duplicatedChains.push(chainSummary);
+          }
+
+          // We return in both cases, since we don't want to take action
+          return;
+        }
+
+        // Chain does not exist in the orbit-chains file, we continue the flow (fetch information and save it)
         console.log(`Fetching information of ${chainSummary.chainId}`);
         const chainInformation = await fetchChainInformation({
           rollup: chainSummary.rollupAddress,
@@ -181,15 +206,30 @@ const main = async (options: FindChainsOptions) => {
         });
 
         console.log(`Saving information of ${chainSummary.chainId}`);
-        saveChainInformation({
-          parentChainPublicClient,
-          orbitChainId: chainInformation.chainId,
-          orbitChainRpc: undefined,
-          coreContractsWithCreator: chainInformation.coreContractsWithCreator,
-          tokenBridgeContractsWithCreators: chainInformation.tokenBridgeContractsWithCreators,
-        });
+        if (
+          !saveChainInformation({
+            parentChainPublicClient,
+            orbitChainId: chainInformation.chainId,
+            orbitChainRpc: undefined,
+            coreContractsWithCreator: chainInformation.coreContractsWithCreator,
+            tokenBridgeContractsWithCreators: chainInformation.tokenBridgeContractsWithCreators,
+          })
+        ) {
+          // Special case where when trying to save the chain, it already existed in the orbit-chains file
+          // This may happen when finding multiple chains with the same chain id created close to one another
+          // (so they don't exist in the file before running this script)
+          // Note that since "map" is run in parallel for all found chains, the one marked as duplicate is not
+          // necessarily the last one created.
+          duplicatedChains.push(chainSummary);
+        }
       }),
     );
+
+    // Finally show the duplicated chains found
+    if (duplicatedChains) {
+      console.log(`Duplicated chains found:`);
+      console.table(duplicatedChains);
+    }
   }
 };
 

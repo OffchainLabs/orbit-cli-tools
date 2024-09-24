@@ -1,6 +1,6 @@
 import yargs from 'yargs/yargs';
 import { createPublicClient, http, parseAbi, PublicClient } from 'viem';
-import { loadOrbitChainsFromFile } from '../src/utils';
+import { getDefaultChainRpc, loadOrbitChainsFromFile } from '../src/utils';
 import { calculateChainTvl, ChainTvlResult } from '../src/calculateChainTvl';
 import { getChain } from '../src/getChain';
 import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
@@ -55,11 +55,16 @@ const main = async (options: CalculateChainsValueOptions) => {
         id: Number(orbitChainId),
       });
 
+      // Failsafe, although this will never happen (for now)
+      if (!orbitChainInformation) {
+        return;
+      }
+
       // Parent chain client
       const parentChainInformation = getParentChainFromId(orbitChainInformation.parentChainId);
       const parentChainPublicClient = createPublicClient({
         chain: parentChainInformation,
-        transport: http(orbitChainInformation.parentChainRpc),
+        transport: http(getDefaultChainRpc(parentChainInformation)),
       }) as PublicClient;
 
       // Get TVL on bridge

@@ -98,7 +98,7 @@ The scripts yields the information of all chains in a table format, ordered by t
 Available options:
 
 - `--sortByActivity`: orders the information by last block number reported, instead of TVL
-- `--showFullTable`: shows all the information obtained (might not fit  smaller screens)
+- `--showFullTable`: shows all the information obtained (might not fit smaller screens)
 
 Example:
 

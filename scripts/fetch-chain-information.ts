@@ -5,7 +5,7 @@ import {
   FetchChainInformationOptions,
   FetchChainInformationResult,
 } from '../src/fetchChainInformation';
-import { extractChainIdFromRpc } from '../src/utils';
+import { extractChainIdFromRpc, getDefaultChainRpc } from '../src/utils';
 import { saveChainInformation } from '../src/saveChainInformation';
 import yargs from 'yargs/yargs';
 
@@ -39,7 +39,9 @@ const main = async (options: FetchChainInformationOptions) => {
   if (options.saveChainInformation) {
     // Parent chain client
     const parentChainInformation = getParentChainFromId(options.parentChainId);
-    const clientTransport = options.parentChainRpc ? http(options.parentChainRpc) : http();
+    const clientTransport = http(
+      getDefaultChainRpc(parentChainInformation, options.parentChainRpc),
+    );
     const parentChainPublicClient = createPublicClient({
       chain: parentChainInformation,
       transport: clientTransport,
