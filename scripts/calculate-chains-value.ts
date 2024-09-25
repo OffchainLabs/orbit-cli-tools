@@ -12,6 +12,7 @@ type CalculateChainsValueOptions = {
 
 type ChainValueResult = {
   id: number;
+  name: string;
   parentChainId: number;
 } & ChainTvlResult & {
     lastReportedMessageCount: bigint;
@@ -79,6 +80,7 @@ const main = async (options: CalculateChainsValueOptions) => {
 
       chainsValue.push({
         id: orbitChainInformation.id,
+        name: orbitChainInformation.name,
         parentChainId: orbitChainInformation.parentChainId,
         ...orbitChainTvl,
         lastReportedMessageCount,
