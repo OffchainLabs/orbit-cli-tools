@@ -44,6 +44,7 @@ export const saveChainInformation = ({
   const orbitChainInformation: OrbitChainInformation = {
     id: orbitChainId,
     name: '',
+    infoUrl: '',
     rpc: orbitChainRpc || '',
     parentChainId,
     parentChainRpc: parentChainPublicClient.chain!.rpcUrls.default.http[0],
