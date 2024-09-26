@@ -1,6 +1,16 @@
 import fs from 'fs';
 import path from 'path';
-import { Address, Chain, createPublicClient, defineChain, GetLogsReturnType, http, parseAbi, PublicClient, zeroAddress } from 'viem';
+import {
+  Address,
+  Chain,
+  createPublicClient,
+  defineChain,
+  GetLogsReturnType,
+  http,
+  parseAbi,
+  PublicClient,
+  zeroAddress,
+} from 'viem';
 import {
   mainnet,
   sepolia,
@@ -41,7 +51,7 @@ export type NativeTokenInformation = {
   name: string;
   symbol: string;
   decimals: number;
-}
+};
 
 // Tracked Viem chains
 const trackedChains = {
@@ -72,7 +82,10 @@ export const extractChainIdFromRpc = async (chainRpc: string) => {
   return chainId;
 };
 
-export const getNativeTokenInformation = async (parentChainPublicClient: PublicClient, nativeTokenAddress: Address): Promise<NativeTokenInformation> => {
+export const getNativeTokenInformation = async (
+  parentChainPublicClient: PublicClient,
+  nativeTokenAddress: Address,
+): Promise<NativeTokenInformation> => {
   const nativeTokenName = await parentChainPublicClient.readContract({
     address: nativeTokenAddress,
     abi: parseAbi(['function symbol() view returns (string)']),
@@ -97,9 +110,11 @@ export const getNativeTokenInformation = async (parentChainPublicClient: PublicC
     symbol: nativeTokenSymbol,
     decimals: nativeTokenDecimals,
   };
-}
+};
 
-export const createPublicClientForOrbitChain = async (key: string): Promise<PublicClient | undefined> => {
+export const createPublicClientForOrbitChain = async (
+  key: string,
+): Promise<PublicClient | undefined> => {
   const orbitChainInformation = await getChain({ key });
   if (!orbitChainInformation || !orbitChainInformation.rpc) {
     return undefined;
@@ -121,7 +136,10 @@ export const createPublicClientForOrbitChain = async (key: string): Promise<Publ
       transport: http(getDefaultChainRpc(parentChainInformation)),
     }) as PublicClient;
 
-    const nativeTokenInformation = await getNativeTokenInformation(parentChainPublicClient, orbitChainInformation.core.nativeToken);
+    const nativeTokenInformation = await getNativeTokenInformation(
+      parentChainPublicClient,
+      orbitChainInformation.core.nativeToken,
+    );
 
     orbitChainInformationForPublicClient.nativeCurrency = {
       name: nativeTokenInformation.name,
@@ -134,7 +152,7 @@ export const createPublicClientForOrbitChain = async (key: string): Promise<Publ
     chain: defineChainInformation(orbitChainInformationForPublicClient),
     transport: http(orbitChainInformation.rpc),
   }) as PublicClient;
-}
+};
 
 export const defineChainInformation = (chainInformation: ChainInformation) => {
   return defineChain({
@@ -192,7 +210,7 @@ export const getDefaultChainRpc = (chainInformation: Chain, rpcSpecified?: strin
 // Helper functions for orbit-chain files
 export const generateOrbitChainKey = (parentChainId: number, rollupAddress: Address) => {
   return `${parentChainId}_${rollupAddress.toLowerCase()}`;
-}
+};
 
 export const loadOrbitChainsFromFile = () => {
   const orbitChainsInformationFilepath = path.join(__dirname, '..', orbitChainsInformationJsonFile);

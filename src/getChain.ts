@@ -1,5 +1,9 @@
 import { OrbitChainInformation } from '../src/types';
-import { extractChainIdFromRpc, generateOrbitChainKey, loadOrbitChainsFromFile } from '../src/utils';
+import {
+  extractChainIdFromRpc,
+  generateOrbitChainKey,
+  loadOrbitChainsFromFile,
+} from '../src/utils';
 
 export type GetChainOptions = {
   id?: number;
@@ -26,7 +30,10 @@ export const getChain = async (
     );
 
     if (orbitChainInformation) {
-      orbitChainKey = generateOrbitChainKey(orbitChainInformation.parentChainId, orbitChainInformation.core.rollup);
+      orbitChainKey = generateOrbitChainKey(
+        orbitChainInformation.parentChainId,
+        orbitChainInformation.core.rollup,
+      );
     }
   }
 
@@ -39,7 +46,10 @@ export const getChain = async (
     );
 
     if (orbitChainInformation) {
-      orbitChainKey = generateOrbitChainKey(orbitChainInformation.parentChainId, orbitChainInformation.core.rollup);
+      orbitChainKey = generateOrbitChainKey(
+        orbitChainInformation.parentChainId,
+        orbitChainInformation.core.rollup,
+      );
     }
   }
 
@@ -51,7 +61,10 @@ export const getChain = async (
     );
 
     if (orbitChainInformation) {
-      orbitChainKey = generateOrbitChainKey(orbitChainInformation.parentChainId, orbitChainInformation.core.rollup);
+      orbitChainKey = generateOrbitChainKey(
+        orbitChainInformation.parentChainId,
+        orbitChainInformation.core.rollup,
+      );
     }
   }
 

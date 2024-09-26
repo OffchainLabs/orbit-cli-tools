@@ -59,11 +59,16 @@ export const saveChainInformation = ({
   orbitChainsInformation[orbitChainKey] = orbitChainInformation;
 
   // Sort chains information
-  const orbitChainsInformationSorted = Object.keys(orbitChainsInformation).sort().reduce((result: any, key: string) => {
-    result[key] = orbitChainsInformation[key];
-    return result;
-  }, {});
+  const orbitChainsInformationSorted = Object.keys(orbitChainsInformation)
+    .sort()
+    .reduce((result: any, key: string) => {
+      result[key] = orbitChainsInformation[key];
+      return result;
+    }, {});
 
-  fs.writeFileSync(orbitChainsInformationFilepath, JSON.stringify(orbitChainsInformationSorted, null, 4));
+  fs.writeFileSync(
+    orbitChainsInformationFilepath,
+    JSON.stringify(orbitChainsInformationSorted, null, 4),
+  );
   return true;
 };

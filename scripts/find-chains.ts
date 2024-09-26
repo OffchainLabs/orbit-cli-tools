@@ -200,7 +200,9 @@ const main = async (options: FindChainsOptions) => {
 
         // We finally check if the same chain id has been detected multiple times in this run
         const chainIdIsDuplicated = chainsSummary.find(
-          (item: ChainSummary) => item.chainId === chainSummary.chainId && item.rollupAddress !== chainSummary.rollupAddress,
+          (item: ChainSummary) =>
+            item.chainId === chainSummary.chainId &&
+            item.rollupAddress !== chainSummary.rollupAddress,
         );
         if (chainIdIsDuplicated) {
           duplicatedChains.push(chainSummary);
