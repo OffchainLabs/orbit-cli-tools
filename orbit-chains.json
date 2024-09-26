@@ -1,1 +1,51 @@
-{}
+{
+  "42161_0xc47dacfbaa80bd9d8112f4e8069482c2a3221336": {
+    "id": 660279,
+    "name": "Xai",
+    "infoUrl": "https://xai-foundation.gitbook.io/xai-network/build-on-xai/xai-chains-and-parameters/connect-to-xai-mainnet",
+    "rpc": "https://xai-chain.net/rpc",
+    "parentChainId": 42161,
+    "parentChainRpc": "https://arb1.arbitrum.io/rpc",
+    "explorerUrl": "https://xaiscan.io",
+    "parentChainExplorerUrl": "https://arbiscan.io",
+    "core": {
+      "rollup": "0xC47DacFbAa80Bd9D8112F4e8069482c2A3221336",
+      "inbox": "0xaE21fDA3de92dE2FDAF606233b2863782Ba046F9",
+      "nativeToken": "0x4Cb9a7AE498CEDcBb5EAe9f25736aE7d428C9D66",
+      "outbox": "0x1E400568AD4840dbE50FB32f306B842e9ddeF726",
+      "rollupEventInbox": "0x36aDe24988E4C47602e38BD9a0Bd89031eF807a8",
+      "challengeManager": "0x3a3f62034a42a35eA1686B199bB73006aa525eE4",
+      "adminProxy": "0x041F85dD87c46B941dc9b15c6628B19ee5358485",
+      "sequencerInbox": "0x995a9d3ca121D48d21087eDE20bc8acb2398c8B1",
+      "bridge": "0x7dd8A76bdAeBE3BBBaCD7Aa87f1D4FDa1E60f94f",
+      "upgradeExecutor": "0x0EE7AD3Cc291343C9952fFd8844e86d294fa513F",
+      "validatorUtils": "0x6c21303F5986180B1394d2C89f3e883890E2867b",
+      "validatorWalletCreator": "0x2b0E04Dc90e3fA58165CB41E2834B44A56E766aF",
+      "deployedAtBlockNumber": 166757506,
+      "rollupCreator": "0x9cad81628ab7d8e239f1a5b497313341578c5f71"
+    },
+    "tokenBridge": {
+      "parentChainContracts": {
+        "router": "0x22CCA5Dc96a4Ac1EC32c9c7C5ad4D66254a24C35",
+        "standardGateway": "0xb591cE747CF19cF30e11d656EB94134F523A9e77",
+        "customGateway": "0xb15A0826d65bE4c2fDd961b72636168ee70Af030",
+        "wethGateway": "0x0000000000000000000000000000000000000000",
+        "weth": "0x0000000000000000000000000000000000000000",
+        "multicall": "0x90B02D9F861017844F30dFbdF725b6aa84E63822",
+        "tokenBridgeCreator": "0x2f5624dc8800dfA0A82AC03509Ef8bb8E7Ac000e"
+      },
+      "orbitChainContracts": {
+        "router": "0xd096e8dE90D34de758B0E0bA4a796eA2e1e272cF",
+        "standardGateway": "0x0c71417917D24F4A6A6A55559B98c5cCEcb33F7a",
+        "customGateway": "0x96551194230725c72ACF8E9573B1382CCBC70635",
+        "wethGateway": "0x0000000000000000000000000000000000000000",
+        "weth": "0x0000000000000000000000000000000000000000",
+        "proxyAdmin": "0x56800fDCFbE19Ea3EE9d115dAC30d95d6459c44E",
+        "beaconProxyFactory": "0xC65de812db42Bfa8bd4E0fCf6ffcad8fe3072D44",
+        "upgradeExecutor": "0xB30f0939c072255C9a8019B5a52Df9a364861f84",
+        "multicall": "0xEEC168551A85911Ec3A905e0561b656979f3ea67",
+        "tokenBridgeCreator": "0x6096eb252A3bf4d0ae228dC3beA480A2d5EC36Ec"
+      }
+    }
+  }
+}
