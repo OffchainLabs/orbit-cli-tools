@@ -1,6 +1,6 @@
 import yargs from 'yargs/yargs';
 import { createPublicClient, http, parseAbi, PublicClient } from 'viem';
-import { loadOrbitChainsFromFile } from '../src/utils';
+import { getDefaultChainRpc, loadOrbitChainsFromFile } from '../src/utils';
 import { calculateChainTvl, ChainTvlResult } from '../src/calculateChainTvl';
 import { getChain } from '../src/getChain';
 import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
@@ -12,6 +12,7 @@ type CalculateChainsValueOptions = {
 
 type ChainValueResult = {
   id: number;
+  name: string;
   parentChainId: number;
 } & ChainTvlResult & {
     lastReportedMessageCount: bigint;
@@ -41,29 +42,34 @@ const main = async (options: CalculateChainsValueOptions) => {
   // Load orbit-chains file
   const orbitChainsInformation = loadOrbitChainsFromFile();
 
-  // Get all ids
-  const orbitChainIds = Object.keys(orbitChainsInformation);
+  // Get all keys
+  const orbitChainKeys = Object.keys(orbitChainsInformation);
 
   // Initialize result object
   const chainsValue: ChainValueResult[] = [];
 
   // Traverse all ids
   await Promise.all(
-    orbitChainIds.map(async (orbitChainId) => {
+    orbitChainKeys.map(async (orbitChainKey) => {
       // Get chain information
       const orbitChainInformation = await getChain({
-        id: Number(orbitChainId),
+        key: orbitChainKey,
       });
+
+      // Failsafe, although this will never happen (for now)
+      if (!orbitChainInformation) {
+        return;
+      }
 
       // Parent chain client
       const parentChainInformation = getParentChainFromId(orbitChainInformation.parentChainId);
       const parentChainPublicClient = createPublicClient({
         chain: parentChainInformation,
-        transport: http(orbitChainInformation.parentChainRpc),
+        transport: http(getDefaultChainRpc(parentChainInformation)),
       }) as PublicClient;
 
       // Get TVL on bridge
-      const orbitChainTvl = await calculateChainTvl(orbitChainInformation.id);
+      const orbitChainTvl = await calculateChainTvl(orbitChainKey);
 
       // Get latest block number batched
       const lastReportedMessageCount = await parentChainPublicClient.readContract({
@@ -74,6 +80,7 @@ const main = async (options: CalculateChainsValueOptions) => {
 
       chainsValue.push({
         id: orbitChainInformation.id,
+        name: orbitChainInformation.name,
         parentChainId: orbitChainInformation.parentChainId,
         ...orbitChainTvl,
         lastReportedMessageCount,

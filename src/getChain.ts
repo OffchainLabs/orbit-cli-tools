@@ -1,27 +1,56 @@
 import { OrbitChainInformation } from '../src/types';
-import { extractChainIdFromRpc, loadOrbitChainsFromFile } from '../src/utils';
+import {
+  extractChainIdFromRpc,
+  generateOrbitChainKey,
+  loadOrbitChainsFromFile,
+} from '../src/utils';
 
 export type GetChainOptions = {
   id?: number;
   rpc?: string;
   rollup?: string;
+  key?: string;
+  verbose?: boolean;
 };
 
-export const getChain = async (options: GetChainOptions) => {
+export const getChain = async (
+  options: GetChainOptions,
+): Promise<OrbitChainInformation | undefined> => {
   // Load orbit-chains file
   const orbitChainsInformation = loadOrbitChainsFromFile();
+  const orbitChains = Object.values(orbitChainsInformation) as OrbitChainInformation[];
 
-  // Default chain id
-  let orbitChainId = 0;
+  // Default key
+  let orbitChainKey = '';
 
   // If we receive the chain id
   if (options.id) {
-    orbitChainId = options.id;
+    const orbitChainInformation = orbitChains.find(
+      (item: OrbitChainInformation) => item.id === options.id,
+    );
+
+    if (orbitChainInformation) {
+      orbitChainKey = generateOrbitChainKey(
+        orbitChainInformation.parentChainId,
+        orbitChainInformation.core.rollup,
+      );
+    }
   }
 
   // If we receive the chain RPC
   if (options.rpc) {
-    orbitChainId = await extractChainIdFromRpc(options.rpc);
+    const orbitChainId = await extractChainIdFromRpc(options.rpc);
+
+    const orbitChainInformation = orbitChains.find(
+      (item: OrbitChainInformation) => item.id === orbitChainId,
+    );
+
+    if (orbitChainInformation) {
+      orbitChainKey = generateOrbitChainKey(
+        orbitChainInformation.parentChainId,
+        orbitChainInformation.core.rollup,
+      );
+    }
   }
 
   // If we receive the rollup address of the chain
@@ -32,13 +61,24 @@ export const getChain = async (options: GetChainOptions) => {
     );
 
     if (orbitChainInformation) {
-      orbitChainId = orbitChainInformation.id;
+      orbitChainKey = generateOrbitChainKey(
+        orbitChainInformation.parentChainId,
+        orbitChainInformation.core.rollup,
+      );
     }
   }
 
-  if (!orbitChainId || !(orbitChainId in orbitChainsInformation)) {
-    throw new Error(`Chain was not found in the chains JSON file`);
+  // If we receive the key
+  if (options.key) {
+    orbitChainKey = options.key.toLowerCase();
   }
 
-  return orbitChainsInformation[orbitChainId];
+  if (!orbitChainKey || !(orbitChainKey in orbitChainsInformation)) {
+    if (options.verbose) {
+      console.error(`Chain ${orbitChainKey} was not found in the chains JSON file`);
+    }
+    return;
+  }
+
+  return orbitChainsInformation[orbitChainKey];
 };

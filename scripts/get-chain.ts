@@ -16,8 +16,13 @@ const renderChainInformation = (chainInformation: OrbitChainInformation) => {
 // Main function //
 ///////////////////
 const main = async (options: GetChainOptions) => {
-  const orbitChainInformation = await getChain(options);
-  renderChainInformation(orbitChainInformation);
+  const orbitChainInformation = await getChain({
+    ...options,
+    verbose: true,
+  });
+  if (orbitChainInformation) {
+    renderChainInformation(orbitChainInformation);
+  }
 };
 
 /////////////////////

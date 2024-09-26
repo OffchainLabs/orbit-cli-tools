@@ -6,6 +6,7 @@ import {
   createTokenBridgeFetchTokenBridgeContracts,
 } from '@arbitrum/orbit-sdk';
 import { CoreContractsWithCreator, TokenBridgeContractsWithCreators } from '../src/types';
+import { getDefaultChainRpc } from './utils';
 
 export type FetchChainInformationOptions = {
   rollup: string;
@@ -28,7 +29,7 @@ export const fetchChainInformation = async (
 ): Promise<FetchChainInformationResult> => {
   // Parent chain client
   const parentChainInformation = getParentChainFromId(options.parentChainId);
-  const clientTransport = options.parentChainRpc ? http(options.parentChainRpc) : http();
+  const clientTransport = http(getDefaultChainRpc(parentChainInformation, options.parentChainRpc));
   const parentChainPublicClient = createPublicClient({
     chain: parentChainInformation,
     transport: clientTransport,

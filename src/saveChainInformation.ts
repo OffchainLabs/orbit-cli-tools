@@ -7,6 +7,7 @@ import {
   OrbitChainInformation,
 } from '../src/types';
 import { orbitChainsInformationJsonFile } from '../src/constants';
+import { generateOrbitChainKey } from './utils';
 
 export const saveChainInformation = ({
   parentChainPublicClient,
@@ -22,34 +23,52 @@ export const saveChainInformation = ({
   coreContractsWithCreator: CoreContractsWithCreator;
   tokenBridgeContractsWithCreators: TokenBridgeContractsWithCreators;
   updateInformation?: boolean;
-}) => {
+}): boolean => {
   // Load orbit-chains file
   const orbitChainsInformationFilepath = path.join(__dirname, '..', orbitChainsInformationJsonFile);
   const orbitChainsInformationRaw = fs.readFileSync(orbitChainsInformationFilepath, 'utf8');
   const orbitChainsInformation = JSON.parse(orbitChainsInformationRaw);
 
-  if (orbitChainId in orbitChainsInformation && !updateInformation) {
+  // Generate key
+  const parentChainId = parentChainPublicClient.chain!.id;
+  const orbitChainKey = generateOrbitChainKey(parentChainId, coreContractsWithCreator.rollup);
+
+  if (orbitChainKey in orbitChainsInformation && !updateInformation) {
     // Information already present in JSON object
     console.warn(
-      `Chain id ${orbitChainId} is already present in ${orbitChainsInformationJsonFile}. If you want to update the information, use the flag '--updateInformation'. Skip saving.`,
+      `Chain id ${orbitChainKey} is already present in ${orbitChainsInformationJsonFile}. If you want to update the information, use the flag '--updateInformation'. Skip saving.`,
     );
-    return;
+    return false;
   }
 
   const orbitChainInformation: OrbitChainInformation = {
     id: orbitChainId,
+    name: '',
+    infoUrl: '',
     rpc: orbitChainRpc || '',
-    parentChainId: parentChainPublicClient.chain!.id,
+    parentChainId,
     parentChainRpc: parentChainPublicClient.chain!.rpcUrls.default.http[0],
     explorerUrl:
-      orbitChainId in orbitChainsInformation
-        ? orbitChainsInformation[orbitChainId].explorerUrl
+      orbitChainKey in orbitChainsInformation
+        ? orbitChainsInformation[orbitChainKey].explorerUrl
         : '',
     parentChainExplorerUrl: parentChainPublicClient.chain!.blockExplorers!.default.url,
     core: coreContractsWithCreator,
     tokenBridge: tokenBridgeContractsWithCreators,
   };
-  orbitChainsInformation[orbitChainId] = orbitChainInformation;
+  orbitChainsInformation[orbitChainKey] = orbitChainInformation;
 
-  fs.writeFileSync(orbitChainsInformationFilepath, JSON.stringify(orbitChainsInformation, null, 4));
+  // Sort chains information
+  const orbitChainsInformationSorted = Object.keys(orbitChainsInformation)
+    .sort()
+    .reduce((result: any, key: string) => {
+      result[key] = orbitChainsInformation[key];
+      return result;
+    }, {});
+
+  fs.writeFileSync(
+    orbitChainsInformationFilepath,
+    JSON.stringify(orbitChainsInformationSorted, null, 4),
+  );
+  return true;
 };

@@ -4,6 +4,7 @@ import {
   decodeEventLog,
   http,
   keccak256,
+  Log,
   PublicClient,
   toHex,
 } from 'viem';
@@ -12,6 +13,8 @@ import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
 import { AbiEventItem } from '../src/types';
 import { saveChainInformation } from '../src/saveChainInformation';
 import { fetchChainInformation } from '../src/fetchChainInformation';
+import { generateOrbitChainKey, getDefaultChainRpc, queryLogsByChunks } from '../src/utils';
+import { getChain } from '../src/getChain';
 
 /////////////////////////
 // Types and constants //
@@ -26,11 +29,11 @@ type FindChainsOptions = {
 
 type RollupInitializedEventArgs = {
   machineHash: `0x${string}`;
-  chainId: bigint;
+  chainId: number;
 };
 
 type ChainSummary = {
-  chainId: bigint;
+  chainId: number;
   transactionHash: `0x${string}`;
   createdAtBlock: bigint;
   rollupAddress: Address;
@@ -103,7 +106,7 @@ const renderFoundChains = (blockFrom: bigint, blockTo: bigint, chainsSummary: Ch
 const main = async (options: FindChainsOptions) => {
   // Parent chain client
   const parentChainInformation = getParentChainFromId(options.parentChainId);
-  const clientTransport = options.parentChainRpc ? http(options.parentChainRpc) : http();
+  const clientTransport = http(getDefaultChainRpc(parentChainInformation, options.parentChainRpc));
   const parentChainPublicClient = createPublicClient({
     chain: parentChainInformation,
     transport: clientTransport,
@@ -120,15 +123,16 @@ const main = async (options: FindChainsOptions) => {
     toBlock = BigInt(options.toBlock);
   }
 
-  const queryFromBlock = fromBlock > 0 ? fromBlock : 'earliest';
+  const queryFromBlock = fromBlock > 0 ? fromBlock : 0n;
   const queryToBlock = toBlock;
 
   // Obtaining RollupInitialized events
-  const rollupInitializedEvents = await parentChainPublicClient.getLogs({
+  const rollupInitializedEvents = (await queryLogsByChunks({
+    publicClient: parentChainPublicClient,
     event: rollupInitializedEventAbi as AbiEventItem,
     fromBlock: queryFromBlock,
     toBlock: queryToBlock,
-  });
+  })) as Log<bigint, number, false, AbiEventItem, undefined, [AbiEventItem], string>[];
 
   const chainsSummary: ChainSummary[] = await Promise.all(
     rollupInitializedEvents.map(async (rollupInitializedEvent) => {
@@ -171,9 +175,42 @@ const main = async (options: FindChainsOptions) => {
 
   // Optionally saving them
   if (options.saveChainsInformation) {
+    const duplicatedChains: ChainSummary[] = [];
+
     await Promise.all(
       chainsSummary.map(async (chainSummary) => {
-        console.log(`Fetching information of ${chainSummary.chainId}`);
+        // We check first if the chain is already in the orbit-chains file
+        const storedChainInformationByKey = await getChain({
+          key: generateOrbitChainKey(options.parentChainId, chainSummary.rollupAddress),
+        });
+        if (storedChainInformationByKey) {
+          // That chain already exists in the orbit-chains file, we don't need to process it
+          return;
+        }
+
+        // We then check if the chain id is present in the orbit-chains file
+        const storedChainInformationById = await getChain({
+          id: Number(chainSummary.chainId),
+        });
+        if (storedChainInformationById) {
+          // Information for that chain id already exists in the orbit-chains file, but it's different
+          duplicatedChains.push(chainSummary);
+          return;
+        }
+
+        // We finally check if the same chain id has been detected multiple times in this run
+        const chainIdIsDuplicated = chainsSummary.find(
+          (item: ChainSummary) =>
+            item.chainId === chainSummary.chainId &&
+            item.rollupAddress !== chainSummary.rollupAddress,
+        );
+        if (chainIdIsDuplicated) {
+          duplicatedChains.push(chainSummary);
+          return;
+        }
+
+        // Chain does not exist in the orbit-chains file, we continue the flow (fetch information and save it)
+        console.log(`Fetching information for ${chainSummary.chainId}`);
         const chainInformation = await fetchChainInformation({
           rollup: chainSummary.rollupAddress,
           parentChainId: options.parentChainId,
@@ -190,6 +227,12 @@ const main = async (options: FindChainsOptions) => {
         });
       }),
     );
+
+    // Finally show the duplicated chains found
+    if (duplicatedChains) {
+      console.log(`Duplicated chains found:`);
+      console.table(duplicatedChains);
+    }
   }
 };
 

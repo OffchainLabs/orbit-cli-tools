@@ -1,10 +1,12 @@
 {
-  "660279": {
+  "42161_0xc47dacfbaa80bd9d8112f4e8069482c2a3221336": {
     "id": 660279,
+    "name": "Xai",
+    "infoUrl": "https://xai-foundation.gitbook.io/xai-network/build-on-xai/xai-chains-and-parameters/connect-to-xai-mainnet",
     "rpc": "https://xai-chain.net/rpc",
     "parentChainId": 42161,
     "parentChainRpc": "https://arb1.arbitrum.io/rpc",
-    "explorerUrl": "https://explorer.xai-chain.net/",
+    "explorerUrl": "https://xaiscan.io",
     "parentChainExplorerUrl": "https://arbiscan.io",
     "core": {
       "rollup": "0xC47DacFbAa80Bd9D8112F4e8069482c2A3221336",

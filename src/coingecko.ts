@@ -1,5 +1,7 @@
 import { Address } from 'viem';
 import dotenv from 'dotenv';
+import { coingeckoApiMaxAttempts, coingeckoSecondsBetweenAttempts } from './constants';
+import { sleep } from './utils';
 dotenv.config();
 
 export const getTokenPrice = async (parentChainId: number, address: Address | 'ethereum') => {
@@ -34,8 +36,27 @@ export const getTokenPrice = async (parentChainId: number, address: Address | 'e
   const tokenParameter = address === 'ethereum' ? 'ids' : 'contract_addresses';
   const tokenAddress = address.toLowerCase();
   const url = `https://api.coingecko.com/api/v3/simple/${apiEndpoint}?${tokenParameter}=${tokenAddress}&vs_currencies=usd&x_cg_demo_api_key=${process.env.COINGECKO_DEMO_API_KEY}`;
-  const response = await fetch(url);
-  const result = await response.json();
+
+  // Querying API
+  let result = undefined;
+  let attempts = 0;
+  while (attempts < coingeckoApiMaxAttempts) {
+    try {
+      const response = await fetch(url);
+      result = await response.json();
+      break;
+    } catch (error) {
+      attempts++;
+
+      if (attempts >= coingeckoApiMaxAttempts) {
+        console.error(`Failed to get logs after ${coingeckoApiMaxAttempts} attempts:`, error);
+        throw error;
+      }
+
+      console.warn(`Attempt ${attempts} failed. Retrying...`);
+      await sleep(1000 * (attempts + coingeckoSecondsBetweenAttempts));
+    }
+  }
 
   // Error checking
   if (!result) {
