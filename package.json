@@ -9,6 +9,7 @@
     "getChain": "ts-node scripts/get-chain.ts",
     "calculateChainsValue": "ts-node scripts/calculate-chains-value.ts",
     "getChainsClientVersion": "ts-node scripts/get-chains-client-version.ts",
+    "getChainFeesInformation": "ts-node scripts/fetch-chain-fees-information.ts",
     "prettier:check": "prettier --check '**/*.{ts,md,json,yml}'",
     "prettier:format": "prettier --write '**/*.{ts,md,json,yml}'"
   },
