@@ -1,13 +1,15 @@
 import { getChain, GetChainOptions } from '../src/getChain';
 import yargs from 'yargs/yargs';
-import { createPublicClientForOrbitChain } from '../src/utils';
+import { createPublicClientForOrbitChain, getDefaultChainRpc, getNativeTokenInformation, NativeTokenInformation } from '../src/utils';
 import { arbGasInfoPublicActions, arbOwnerPublicActions, getBatchPosters } from '@arbitrum/orbit-sdk';
-import { Address, parseAbi, zeroAddress } from 'viem';
+import { Address, createPublicClient, formatGwei, http, parseAbi, PublicClient, zeroAddress } from 'viem';
+import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
 
 type ChainFeesInformationResult = {
   id: number;
   name: string;
   parentChainId: number;
+  nativeToken: NativeTokenInformation;
   parentChainFees: {
     batchPoster: Address;
     baseFeeCollector: Address;
@@ -30,7 +32,31 @@ const renderChainFeesInformation = (chainFeesInformation: ChainFeesInformationRe
   console.log('**************************');
   console.log('* Chain fees information *');
   console.log('**************************');
-  console.log(chainFeesInformation);
+  console.log('');
+
+  // Chain's basic information
+  console.log(`Chain id: ${chainFeesInformation.id}`);
+  console.log(`Chain name: ${chainFeesInformation.name}`);
+  console.log(`Parent chain id: ${chainFeesInformation.parentChainId}`);
+  console.log(`Native token: ${chainFeesInformation.nativeToken.name} (${chainFeesInformation.nativeToken.symbol})`);
+  console.log(`Native token decimals: ${chainFeesInformation.nativeToken.decimals}`);
+  console.log('');
+
+  console.log('Parent chain fees');
+  console.log('-----------------');
+  console.log(`Batch poster: ${chainFeesInformation.parentChainFees.batchPoster}`);
+  console.log(`Base fee collector: ${chainFeesInformation.parentChainFees.baseFeeCollector}`);
+  console.log(`Current base fee estimation (gwei): ${formatGwei(chainFeesInformation.parentChainFees.baseFee)}`);
+  console.log(`Surplus fee collector: ${chainFeesInformation.parentChainFees.surplusFeeCollector}`);
+  console.log(`Surplus fee rate (wei): ${chainFeesInformation.parentChainFees.surplusFee}`);
+  console.log('');
+
+  console.log('Orbit chain fees');
+  console.log('-----------------');
+  console.log(`Base fee collector: ${chainFeesInformation.orbitChainFees.baseFeeCollector}`);
+  console.log(`Minimum base fee (gwei): ${formatGwei(chainFeesInformation.orbitChainFees.baseFee)}`);
+  console.log(`Surplus fee collector: ${chainFeesInformation.orbitChainFees.surplusFeeCollector}`);
+  console.log(`Current surplus fee (gwei): ${formatGwei(chainFeesInformation.orbitChainFees.surplusFee)}`);
 };
 
 ///////////////////
@@ -56,7 +82,13 @@ const main = async (options: GetChainOptions) => {
     throw new Error(`The specified chain ${orbitChainKey} does not have an RPC available.`)
   }
 
-  // Create client
+  // Create clients
+  const parentChainInformation = getParentChainFromId(orbitChainInformation.parentChainId);
+  const parentChainPublicClient = createPublicClient({
+    chain: parentChainInformation,
+    transport: http(getDefaultChainRpc(parentChainInformation)),
+  }) as PublicClient;
+
   const rawPublicClient = await createPublicClientForOrbitChain(orbitChainKey);
   if (!rawPublicClient) {
       // We should not land here, but placing this fallback just in case
@@ -70,7 +102,7 @@ const main = async (options: GetChainOptions) => {
   /////////////////////////////////////////
   
   // Get batch poster
-  const batchPosterCandidates = await getBatchPosters(publicClient, {
+  const batchPosterCandidates = await getBatchPosters(parentChainPublicClient, {
     rollup: orbitChainInformation.core.rollup,
     sequencerInbox: orbitChainInformation.core.sequencerInbox,
   });
@@ -144,10 +176,13 @@ const main = async (options: GetChainOptions) => {
   ////////////
   // Result //
   ////////////
+  const nativeTokenInformation = await getNativeTokenInformation(parentChainPublicClient, orbitChainInformation.core.nativeToken);
+
   renderChainFeesInformation({
     id: orbitChainInformation.id,
     name: orbitChainInformation.name,
     parentChainId: orbitChainInformation.parentChainId,
+    nativeToken: nativeTokenInformation,
     parentChainFees: {
       batchPoster,
       baseFeeCollector: parentChainBaseFeeCollector,

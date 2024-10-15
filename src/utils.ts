@@ -86,6 +86,15 @@ export const getNativeTokenInformation = async (
   parentChainPublicClient: PublicClient,
   nativeTokenAddress: Address,
 ): Promise<NativeTokenInformation> => {
+  if (nativeTokenAddress === zeroAddress) {
+    return {
+      address: zeroAddress,
+      name: 'ETH',
+      symbol: 'ETH',
+      decimals: 18,
+    };
+  }
+
   const nativeTokenName = await parentChainPublicClient.readContract({
     address: nativeTokenAddress,
     abi: parseAbi(['function symbol() view returns (string)']),
