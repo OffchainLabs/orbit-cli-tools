@@ -129,16 +129,21 @@ const main = async (options: GetChainOptions) => {
   /////////////////////////////////////////
 
   // Get batch poster
-  const batchPosterCandidates = await getBatchPosters(parentChainPublicClient, {
-    rollup: orbitChainInformation.core.rollup,
-    sequencerInbox: orbitChainInformation.core.sequencerInbox,
-  });
+  let batchPoster: Address = zeroAddress;
+  try {
+    const batchPosterCandidates = await getBatchPosters(parentChainPublicClient, {
+      rollup: orbitChainInformation.core.rollup,
+      sequencerInbox: orbitChainInformation.core.sequencerInbox,
+    });
 
-  if (batchPosterCandidates.batchPosters.length > 1) {
-    console.warn('More than one batch posters were found: ');
-    console.warn(batchPosterCandidates.batchPosters);
+    if (batchPosterCandidates.batchPosters.length > 1) {
+      console.warn('More than one batch posters were found: ');
+      console.warn(batchPosterCandidates.batchPosters);
+    }
+    batchPoster = batchPosterCandidates.batchPosters[0];
+  } catch (error) {
+    console.warn('No batch poster found');
   }
-  const batchPoster = batchPosterCandidates.batchPosters[0];
 
   // Get fee collector for that batch poster
   let parentChainBaseFeeCollector: Address = zeroAddress;
@@ -202,7 +207,7 @@ const main = async (options: GetChainOptions) => {
   // Result //
   ////////////
   const nativeTokenInformation = await getNativeTokenInformation(
-    parentChainPublicClient,
+    orbitChainInformation.parentChainId,
     orbitChainInformation.core.nativeToken,
   );
 
