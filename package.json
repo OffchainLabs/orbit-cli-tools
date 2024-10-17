@@ -10,6 +10,9 @@
     "calculateChainsValue": "ts-node scripts/calculate-chains-value.ts",
     "getChainsClientVersion": "ts-node scripts/get-chains-client-version.ts",
     "getChainFeesInformation": "ts-node scripts/fetch-chain-fees-information.ts",
+    "utils:getChainsWithoutRpc": "ts-node scripts/utils/get-chains-without-rpc.ts",
+    "utils:getChainsWithoutTokenBridge": "ts-node scripts/utils/get-chains-without-token-bridge.ts",
+    "utils:getOnlyLocalChains": "ts-node scripts/utils/get-only-local-chains.ts",
     "prettier:check": "prettier --check '**/*.{ts,md,json,yml}'",
     "prettier:format": "prettier --write '**/*.{ts,md,json,yml}'"
   },
