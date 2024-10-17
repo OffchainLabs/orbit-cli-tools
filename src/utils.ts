@@ -5,6 +5,7 @@ import {
   Chain,
   createPublicClient,
   defineChain,
+  formatUnits,
   GetLogsReturnType,
   http,
   parseAbi,
@@ -32,6 +33,7 @@ import { AbiEventItem } from './types';
 import { getChain } from './getChain';
 import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
 import dotenv from 'dotenv';
+import { getTokenPrice } from './coingecko';
 dotenv.config();
 
 // Types
@@ -83,7 +85,7 @@ export const extractChainIdFromRpc = async (chainRpc: string) => {
 };
 
 export const getNativeTokenInformation = async (
-  parentChainPublicClient: PublicClient,
+  parentChainId: number,
   nativeTokenAddress: Address,
 ): Promise<NativeTokenInformation> => {
   if (nativeTokenAddress === zeroAddress) {
@@ -94,6 +96,13 @@ export const getNativeTokenInformation = async (
       decimals: 18,
     };
   }
+
+  // Create parent chain client
+  const parentChainInformation = getParentChainFromId(parentChainId);
+  const parentChainPublicClient = createPublicClient({
+    chain: parentChainInformation,
+    transport: http(getDefaultChainRpc(parentChainInformation)),
+  }) as PublicClient;
 
   const nativeTokenName = await parentChainPublicClient.readContract({
     address: nativeTokenAddress,
@@ -121,6 +130,57 @@ export const getNativeTokenInformation = async (
   };
 };
 
+export type TokenAmountUsdInformation = {
+  tokenAddress: Address;
+  tokenSymbol: string;
+  tokenAmount: number;
+  usdAmount: number;
+}
+
+export const getUsdValueOfTokenAmount = async (
+  parentChainId: number,
+  nativeTokenAddress: Address,
+  amount: bigint,
+): Promise<TokenAmountUsdInformation> => {
+  // Create parent chain client
+  const parentChainInformation = getParentChainFromId(parentChainId);
+  const parentChainPublicClient = createPublicClient({
+    chain: parentChainInformation,
+    transport: http(getDefaultChainRpc(parentChainInformation)),
+  }) as PublicClient;
+
+  const nativeTokenDecimals = (nativeTokenAddress === zeroAddress) 
+    ? 18
+    : await parentChainPublicClient.readContract({
+      address: nativeTokenAddress,
+      abi: parseAbi(['function decimals() view returns (uint8)']),
+      functionName: 'decimals',
+    });
+
+  const nativeTokenSymbol = (nativeTokenAddress === zeroAddress) 
+    ? 'ETH'
+    : await parentChainPublicClient.readContract({
+      address: nativeTokenAddress,
+      abi: parseAbi(['function symbol() view returns (string)']),
+      functionName: 'symbol',
+    });
+
+  const tokenPrice = await getTokenPrice(
+    parentChainId,
+    (nativeTokenAddress === zeroAddress) ? 'ethereum' : nativeTokenAddress
+  );
+
+  const nativeTokenAmount = Number(formatUnits(amount, nativeTokenDecimals));
+  const usdAmount = nativeTokenAmount * tokenPrice;
+
+  return {
+    tokenAddress: nativeTokenAddress,
+    tokenSymbol: nativeTokenSymbol,
+    tokenAmount: nativeTokenAmount,
+    usdAmount,
+  };
+}
+
 export const createPublicClientForOrbitChain = async (
   key: string,
 ): Promise<PublicClient | undefined> => {
@@ -138,15 +198,8 @@ export const createPublicClientForOrbitChain = async (
 
   // Handle potential native currency
   if (orbitChainInformation.core.nativeToken !== zeroAddress) {
-    // We need to create a parentChainClient to get information about the native token
-    const parentChainInformation = getParentChainFromId(orbitChainInformation.parentChainId);
-    const parentChainPublicClient = createPublicClient({
-      chain: parentChainInformation,
-      transport: http(getDefaultChainRpc(parentChainInformation)),
-    }) as PublicClient;
-
     const nativeTokenInformation = await getNativeTokenInformation(
-      parentChainPublicClient,
+      orbitChainInformation.parentChainId,
       orbitChainInformation.core.nativeToken,
     );
 
