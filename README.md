@@ -8,6 +8,9 @@ Available tools:
 - Fetch chain information
 - Get chain
 - Calculate chains value
+- Get chains' client version
+- Get chain's fee information
+- Find cross-chain messages
 
 ## Find chains
 
@@ -104,4 +107,67 @@ Example:
 
 ```shell
 yarn calculateChainsValue
+```
+
+## Get chains' client version
+
+Calculates the following information of all the chains that exist in the `orbit-chains.json` file:
+
+- Client version run by the RPC
+- Last block number reported by the RPC
+
+The scripts yields the information of all chains in a table format.
+
+Available options:
+
+- `--sortByClientVersion`: orders the information by the RPC's client version
+- `--sortByLastBlockDate`: orders the information by last block number reported by the RPC
+- `--showFullTable`: shows all the information obtained (might not fit smaller screens)
+
+Example:
+
+```shell
+yarn getChainsClientVersion
+```
+
+## Get chain's fee information
+
+Calculates the following information of the specified chain:
+
+- Batch poster address
+- Parent chain base fee collector address
+- Current estimated parent chain base fee
+- Parent chain surplus fee collector address
+- Parent chain surplus fee rate
+- Orbit chain base fee collector address
+- Minimum chain base fee
+- Orbit chain surplus fee collector address
+- Current chain surplus fee
+
+The options available are the same as for the "Get chain" script.
+
+Example:
+
+```shell
+yarn getChainFeesInformation --id <chain id> --rpc <chain RPC> --rollup <rollup address>
+```
+
+## Find cross-chain messages
+
+Finds all cross-chain messages created from a transaction on the parent chain. It shows the following information about them:
+
+- Parent chain transaction hash
+- Depost transaction on the orbit chain (if it's a deposit)
+- SubmitRetryable transaction (if it's a retryable ticket)
+- Retryable execution transaction (if it's a retryable ticket that was auto-redeemed)
+
+Available options:
+
+- One of `--id`, `--rpc`, `--rollup`: to find the chain in the `orbit-chains.json` file, just like in the "Get chain" script
+- `--transactionHash`: hash of the transaction on the parent chain, that potentially created the cross-chain messages
+
+Example:
+
+```shell
+yarn findCrosschainMessages --id <chain id> --rpc <chain RPC> --rollup <rollup address> --transactionHash <transaction on parent chain>
 ```
