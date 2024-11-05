@@ -135,7 +135,7 @@ export type TokenAmountUsdInformation = {
   tokenSymbol: string;
   tokenAmount: number;
   usdAmount: number;
-}
+};
 
 export const getUsdValueOfTokenAmount = async (
   parentChainId: number,
@@ -149,25 +149,27 @@ export const getUsdValueOfTokenAmount = async (
     transport: http(getDefaultChainRpc(parentChainInformation)),
   }) as PublicClient;
 
-  const nativeTokenDecimals = (nativeTokenAddress === zeroAddress) 
-    ? 18
-    : await parentChainPublicClient.readContract({
-      address: nativeTokenAddress,
-      abi: parseAbi(['function decimals() view returns (uint8)']),
-      functionName: 'decimals',
-    });
+  const nativeTokenDecimals =
+    nativeTokenAddress === zeroAddress
+      ? 18
+      : await parentChainPublicClient.readContract({
+          address: nativeTokenAddress,
+          abi: parseAbi(['function decimals() view returns (uint8)']),
+          functionName: 'decimals',
+        });
 
-  const nativeTokenSymbol = (nativeTokenAddress === zeroAddress) 
-    ? 'ETH'
-    : await parentChainPublicClient.readContract({
-      address: nativeTokenAddress,
-      abi: parseAbi(['function symbol() view returns (string)']),
-      functionName: 'symbol',
-    });
+  const nativeTokenSymbol =
+    nativeTokenAddress === zeroAddress
+      ? 'ETH'
+      : await parentChainPublicClient.readContract({
+          address: nativeTokenAddress,
+          abi: parseAbi(['function symbol() view returns (string)']),
+          functionName: 'symbol',
+        });
 
   const tokenPrice = await getTokenPrice(
     parentChainId,
-    (nativeTokenAddress === zeroAddress) ? 'ethereum' : nativeTokenAddress
+    nativeTokenAddress === zeroAddress ? 'ethereum' : nativeTokenAddress,
   );
 
   const nativeTokenAmount = Number(formatUnits(amount, nativeTokenDecimals));
@@ -179,7 +181,7 @@ export const getUsdValueOfTokenAmount = async (
     tokenAmount: nativeTokenAmount,
     usdAmount,
   };
-}
+};
 
 export const createPublicClientForOrbitChain = async (
   key: string,
