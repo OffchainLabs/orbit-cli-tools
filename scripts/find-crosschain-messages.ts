@@ -62,6 +62,71 @@ type RedeemScheduledEventArgs = {
 
 
 //
+////////////////////////////////////////////////
+// Helper functions for L2Messages (kind = 3) //
+////////////////////////////////////////////////
+//
+const processL2Message = async (
+  inboxMessageDeliveredLogArgs: InboxMessageDeliveredEventArgs,
+  chainId: number,
+  publicClient?: PublicClient,
+) => {
+  // Get the message data
+  const messageData = inboxMessageDeliveredLogArgs.data;
+
+  // Get the kind of L2Message
+  const l2MessageKind = Number(messageData.substring(0, 4));
+  
+  // Try to calculate the transaction hash from the data based on the l2MessageKind
+  let transactionHash = '';
+  switch (l2MessageKind) {
+    // L2MessageKind_SignedTx
+    case 4:
+      const signedTransaction = messageData.substring(4);
+      transactionHash = keccak256(`0x${signedTransaction}`);
+      break;
+    
+    default:
+      console.log(`Message kind 3 - L2Message kind ${l2MessageKind} not processed`);
+      break;
+  }
+
+  if (!transactionHash) {
+    return;
+  }
+
+  if (!publicClient) {
+    console.error(`The specified chain ${chainId} does not have an RPC available.`);
+    return;
+  }
+
+  // Get the receipt of that hash
+  const transactionReceipt = await publicClient.getTransactionReceipt({
+    hash: transactionHash as `0x${string}`,
+  });
+  if (!transactionReceipt) {
+    console.warn(
+      `L2Message transaction was not found on the orbit chain: ${transactionHash}`,
+    );
+    return;
+  }
+
+  // Transaction reverted
+  if (transactionReceipt.status != 'success') {
+    console.warn(
+      `L2Message transaction reverted on the orbit chain: ${transactionHash}`,
+    );
+    return;
+  }
+
+  // Transaction executed successfully
+  console.log(
+    `L2Message transaction was executed successfully on the orbit chain: ${transactionHash}`,
+  );
+};
+
+
+//
 ///////////////////////////////////////////////////////
 // Helper functions for retryable tickets (kind = 9) //
 ///////////////////////////////////////////////////////
@@ -91,8 +156,7 @@ const processRetryableTicket = async (
     maxFeePerGas: messageData.maxFeePerGas,
     data: messageData.data,
   });
-
-  console.log(`Hash: ${createRetryableTransactionHash}`);
+  console.log(`Submit retryable ticket transaction hash: ${createRetryableTransactionHash}`);
 
   if (!publicClient) {
     console.error(`The specified chain ${chainId} does not have an RPC available.`);
@@ -428,6 +492,15 @@ const main = async (options: FindRetryableTicketsOptions) => {
       )[0].args as unknown as BridgeMessageDeliveredEventArgs;
 
       switch (bridgeMessageDeliveredLogArgs.kind) {
+        // L2Message
+        case 3:
+          await processL2Message(
+            inboxMessageDeliveredLogArgs,
+            orbitChainInformation.id,
+            publicClient,
+          );
+          break;
+
         // Retryable ticket
         case 9:
           await processRetryableTicket(
@@ -438,6 +511,7 @@ const main = async (options: FindRetryableTicketsOptions) => {
           );
           break;
 
+        // Deposit
         case 12:
           await processDeposit(
             inboxMessageDeliveredLogArgs,
