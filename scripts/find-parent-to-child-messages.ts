@@ -21,13 +21,12 @@ import { Bridge__factory } from '@arbitrum/sdk/dist/lib/abi/factories/Bridge__fa
 import { ArbRetryableTx__factory } from '@arbitrum/sdk/dist/lib/abi/factories/ArbRetryableTx__factory';
 import { getParentChainFromId } from '@arbitrum/orbit-sdk/utils';
 
-
 //
 /////////////////////////
 // Types and constants //
 /////////////////////////
 //
-type FindRetryableTicketsOptions = {
+type FindParentToChildMessagesOptions = {
   id?: number;
   rpc?: string;
   rollup?: string;
@@ -60,7 +59,6 @@ type RedeemScheduledEventArgs = {
   submissionFeeRefund: bigint;
 };
 
-
 //
 ////////////////////////////////////////////////
 // Helper functions for L2Messages (kind = 3) //
@@ -76,7 +74,7 @@ const processL2Message = async (
 
   // Get the kind of L2Message
   const l2MessageKind = Number(messageData.substring(0, 4));
-  
+
   // Try to calculate the transaction hash from the data based on the l2MessageKind
   let transactionHash = '';
   switch (l2MessageKind) {
@@ -85,7 +83,7 @@ const processL2Message = async (
       const signedTransaction = messageData.substring(4);
       transactionHash = keccak256(`0x${signedTransaction}`);
       break;
-    
+
     default:
       console.log(`Message kind 3 - L2Message kind ${l2MessageKind} not processed`);
       break;
@@ -105,17 +103,13 @@ const processL2Message = async (
     hash: transactionHash as `0x${string}`,
   });
   if (!transactionReceipt) {
-    console.warn(
-      `L2Message transaction was not found on the orbit chain: ${transactionHash}`,
-    );
+    console.warn(`L2Message transaction was not found on the orbit chain: ${transactionHash}`);
     return;
   }
 
   // Transaction reverted
   if (transactionReceipt.status != 'success') {
-    console.warn(
-      `L2Message transaction reverted on the orbit chain: ${transactionHash}`,
-    );
+    console.warn(`L2Message transaction reverted on the orbit chain: ${transactionHash}`);
     return;
   }
 
@@ -124,7 +118,6 @@ const processL2Message = async (
     `L2Message transaction was executed successfully on the orbit chain: ${transactionHash}`,
   );
 };
-
 
 //
 ///////////////////////////////////////////////////////
@@ -309,7 +302,6 @@ const calculateCreateRetryableTransactionHash = (retryableInformation: {
   return keccak256(rlpEnc);
 };
 
-
 //
 ///////////////////////////////////////////////
 // Helper functions for deposits (kind = 12) //
@@ -401,13 +393,12 @@ const calculateDepositTransactionHash = (depositInformation: {
   return keccak256(rlpEnc);
 };
 
-
 //
 ///////////////////
 // Main function //
 ///////////////////
 //
-const main = async (options: FindRetryableTicketsOptions) => {
+const main = async (options: FindParentToChildMessagesOptions) => {
   // Get chain information
   const orbitChainInformation = await getChain({
     ...options,
@@ -528,7 +519,6 @@ const main = async (options: FindRetryableTicketsOptions) => {
     }),
   );
 };
-
 
 //
 /////////////////////

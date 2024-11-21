@@ -303,7 +303,7 @@ export const loadOrbitChainsFromFile = () => {
 };
 
 // Query logs by chunks
-const getChunkSizeByChainId = (chainId: number) => {
+export const getChunkSizeByChainId = (chainId: number) => {
   switch (chainId) {
     case mainnet.id:
       return blockQueryChunkSizeEth;
